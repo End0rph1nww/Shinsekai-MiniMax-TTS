@@ -262,12 +262,13 @@ class GPTSoVITSApiAdapter(TTSAdapter):
                 state.DEFAULT_PROMPT_LANGUAGE,
             )
         )
+        # A caller-supplied file_path must be used verbatim: the host hands us a
+        # ".part" temp path and renames it after validating, so "fixing" the
+        # suffix here makes the host miss the file entirely.
         out_path = Path(
             file_path
             or f"cache/audio/gpt_sovits_{int(time.time() * 1000)}.{self.media_type}"
         )
-        if out_path.suffix and out_path.suffix.lower().lstrip(".") != self.media_type:
-            out_path = out_path.with_suffix(f".{self.media_type}")
         out_path.parent.mkdir(parents=True, exist_ok=True)
         speed = self._as_float(kwargs.get("speed_factor"), 1.0)
         payload = {

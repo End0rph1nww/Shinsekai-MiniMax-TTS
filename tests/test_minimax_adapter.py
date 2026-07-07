@@ -191,3 +191,43 @@ def test_minimax_voice_clone_http_error_includes_server_detail(monkeypatch, tmp_
         )
 
     assert "reference audio is shorter than 10 seconds" in str(excinfo.value)
+
+
+def test_minimax_generate_speech_uses_caller_file_path_verbatim(monkeypatch, tmp_path):
+    audio_url = "https://audio.example.test/generated.wav"
+    audio_bytes = b"fake wav bytes"
+
+    def fake_post(url, headers=None, json=None, timeout=None):
+        return DummyResponse(
+            json_data={
+                "base_resp": {"status_code": 0, "status_msg": "success"},
+                "data": {"audio": audio_url, "status": 2},
+                "extra_info": {"usage_characters": 5},
+            }
+        )
+
+    def fake_get(url, headers=None, timeout=None):
+        return DummyResponse(content=audio_bytes)
+
+    import plugins.cloud_tts.adapter as adapter_module
+
+    monkeypatch.setattr(adapter_module.requests, "post", fake_post)
+    monkeypatch.setattr(adapter_module.requests, "get", fake_get)
+
+    adapter = CloudTTSAdapter(
+        use_runtime_config=False,
+        api_key="user-platform-key",
+        base_api_url="https://api.example.test/v1",
+        default_voice_id="voice-1",
+        audio_format="wav",
+        request_timeout=17,
+    )
+
+    # 宿主传入 .part 临时路径：必须原样写入，不得“纠正”扩展名
+    part_path = tmp_path / "3.wav.part"
+
+    result = adapter.generate_speech("hello", file_path=part_path)
+
+    assert result == str(part_path.resolve())
+    assert part_path.read_bytes() == audio_bytes
+    assert not (tmp_path / "3.wav.wav").exists()

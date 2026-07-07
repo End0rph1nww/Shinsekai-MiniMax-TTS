@@ -220,9 +220,10 @@ class CloudTTSAdapter(TTSAdapter):
             f"\u5f00\u59cb\u5408\u6210\uff1a\u89d2\u8272={character_name}\uff0c"
             f"\u6587\u672c\u957f\u5ea6={len(text_value)}\uff0c\u6a21\u578b={self.model}"
         )
+        # A caller-supplied file_path must be used verbatim: the host hands us a
+        # ".part" temp path and renames it after validating, so "fixing" the
+        # suffix here makes the host miss the file entirely.
         out_path = Path(file_path or f"cache/audio/cloud_tts_{int(time.time() * 1000)}.{self.audio_format}")
-        if out_path.suffix and out_path.suffix.lower().lstrip(".") != self.audio_format:
-            out_path = out_path.with_suffix(f".{self.audio_format}")
         out_path.parent.mkdir(parents=True, exist_ok=True)
         voice_id = self._voice_id_for_request(**kwargs)
         if not voice_id:

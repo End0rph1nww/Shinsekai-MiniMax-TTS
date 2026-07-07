@@ -646,6 +646,43 @@
       return encodeURIComponent(String(value));
     }
 
+    function bridgeToken() {
+      const readToken = (source) => {
+        const queries = [];
+        try {
+          const url = new URL(source || "", window.location.href);
+          queries.push(url.search);
+          const hashQueryIndex = String(url.hash || "").indexOf("?");
+          if (hashQueryIndex >= 0) {
+            queries.push(url.hash.slice(hashQueryIndex + 1));
+          }
+        } catch (_err) {
+          queries.push(source || "");
+        }
+        for (const item of queries) {
+          const query = new URLSearchParams(String(item || "").replace(/^\?/, ""));
+          const token = String(query.get("shinsekai_bridge_token") || query.get("token") || "").trim();
+          if (token) return token;
+        }
+        return "";
+      };
+      const own = readToken(window.location.href);
+      if (own) return own;
+      try {
+        const parent = window.parent && window.parent !== window ? readToken(window.parent.location.href) : "";
+        if (parent) return parent;
+      } catch (_err) {
+        // Cross-origin parents cannot be inspected; fall through to top.
+      }
+      try {
+        const top = window.top && window.top !== window ? readToken(window.top.location.href) : "";
+        if (top) return top;
+      } catch (_err) {
+        // Ignore and try document.referrer below.
+      }
+      return readToken(document.referrer || "");
+    }
+
     function downloadUrlForPath(path) {
       const value = String(path || "").trim();
       return value ? `/api/download?path=${enc(value)}` : "";
@@ -656,6 +693,10 @@
         method: options.method || "GET",
         headers: { "Content-Type": "application/json" },
       };
+      const token = bridgeToken();
+      if (token) {
+        init.headers["X-Shinsekai-Bridge-Token"] = token;
+      }
       if (options.body !== undefined) {
         init.body = JSON.stringify(options.body);
       }

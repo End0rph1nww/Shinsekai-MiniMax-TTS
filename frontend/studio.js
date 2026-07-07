@@ -47,13 +47,55 @@ function apiPath(suffix) {
   return `/api/plugins/${encodeURIComponent(app.pluginId)}${suffix}`;
 }
 
+function bridgeToken() {
+  const readToken = (source) => {
+    const queries = [];
+    try {
+      const url = new URL(source || "", window.location.href);
+      queries.push(url.search);
+      const hashQueryIndex = String(url.hash || "").indexOf("?");
+      if (hashQueryIndex >= 0) {
+        queries.push(url.hash.slice(hashQueryIndex + 1));
+      }
+    } catch (error) {
+      queries.push(source || "");
+    }
+    for (const item of queries) {
+      const query = new URLSearchParams(String(item || "").replace(/^\?/, ""));
+      const token = String(query.get("shinsekai_bridge_token") || query.get("token") || "").trim();
+      if (token) return token;
+    }
+    return "";
+  };
+  const own = readToken(window.location.href);
+  if (own) return own;
+  try {
+    const parent = window.parent && window.parent !== window ? readToken(window.parent.location.href) : "";
+    if (parent) return parent;
+  } catch (error) {
+    // Cross-origin parents cannot be inspected; fall through to top.
+  }
+  try {
+    const top = window.top && window.top !== window ? readToken(window.top.location.href) : "";
+    if (top) return top;
+  } catch (error) {
+    // Ignore and try document.referrer below.
+  }
+  return readToken(document.referrer || "");
+}
+
 async function requestJson(url, options = {}) {
+  const headers = {
+    "Content-Type": "application/json",
+    ...(options.headers || {}),
+  };
+  const token = bridgeToken();
+  if (token && !headers["X-Shinsekai-Bridge-Token"]) {
+    headers["X-Shinsekai-Bridge-Token"] = token;
+  }
   const response = await fetch(url, {
-    headers: {
-      "Content-Type": "application/json",
-      ...(options.headers || {}),
-    },
     ...options,
+    headers,
   });
   const text = await response.text();
   let payload = {};

@@ -16,7 +16,7 @@ QWEN_PROVIDER_SLUG = "qwen-tts"
 GPT_SOVITS_PROVIDER_SLUG = "gpt-sovits-api"
 PLUGIN_ID = "com.shinsekai.cloud_tts"
 PLUGIN_ENTRY = "plugins.cloud_tts.plugin:CloudTtsPlugin"
-PLUGIN_VERSION = "0.12.0"
+PLUGIN_VERSION = "0.12.2"
 
 LEGACY_PROVIDER_SLUG = "cloud-tts"
 LEGACY_PLUGIN_ID = "com.shinsekai.minimax_tts"

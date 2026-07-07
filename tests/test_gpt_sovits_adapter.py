@@ -433,3 +433,40 @@ def test_host_hook_labels_main_api_tts_provider_as_cloud():
         label for slug, label in patched if slug == state.GPT_SOVITS_PROVIDER_SLUG
     ] == ["GPT SoVITS Cloud"]
 
+
+
+def test_generate_speech_uses_caller_file_path_verbatim(monkeypatch, tmp_path):
+    def fake_post(url, json=None, headers=None, timeout=None):
+        return DummyResponse(content=b"WAVEFORM")
+
+    import plugins.cloud_tts.gpt_sovits_adapter as adapter_module
+
+    monkeypatch.setattr(adapter_module.requests, "post", fake_post)
+
+    adapter = GPTSoVITSApiAdapter(
+        use_runtime_config=False,
+        base_api_url="http://gsv.local:9880",
+        model="v4",
+        media_type="wav",
+        character_profiles={
+            "華淡": {
+                "ref_audio_path": "/srv/refs/hanadan.wav",
+                "prompt_text": "前辈，观测开始。",
+                "prompt_lang": "zh",
+                "text_lang": "zh",
+            }
+        },
+    )
+
+    # 宿主传入 .part 临时路径：必须原样写入，不得“纠正”扩展名
+    part_path = tmp_path / "3.wav.part"
+
+    output_path = adapter.generate_speech(
+        "测试文本",
+        file_path=part_path,
+        character_name="華淡",
+    )
+
+    assert Path(output_path) == part_path.resolve()
+    assert part_path.read_bytes() == b"WAVEFORM"
+    assert not (tmp_path / "3.wav.wav").exists()

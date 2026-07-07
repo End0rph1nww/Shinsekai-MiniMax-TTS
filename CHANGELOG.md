@@ -1,5 +1,11 @@
 # Cloud TTS 插件更新日志
 
+## 0.12.2 (2026-07-07)
+
+- **bridge token 支持**: 前端页面（`studio.js` 与 `frontend/dist/index.html`）新增 `bridgeToken()`，依次从自身 URL、父窗口 URL、referrer 读取 `shinsekai_bridge_token`，并在所有请求上携带 `X-Shinsekai-Bridge-Token` header。修复宿主开启 bridge 鉴权后插件页保存配置 / 执行动作 / 文件浏览全部报 `invalid bridge auth token` (403) 的问题（配合宿主侧修复 RachelForster/Shinsekai#217；宿主未修复时浏览器直开模式也可从父窗口 URL 兜底读取）。
+- **修复 TTS 输出路径**: MiniMax 与 GPT-SoVITS 适配器不再"纠正"调用方传入的 `file_path` 扩展名。宿主以 `N.wav.part` 临时文件调用并在校验后改名，此前适配器会把它改写成 `N.wav.wav`，导致宿主找不到音频、每句合成都报 `TTS generation returned no usable audio` 且重试全部失败。现在调用方给定的路径一律原样写入，仅在未提供 `file_path` 时才按配置格式自动命名。
+- **测试清理**: 移除引用已回退 helper `_register_react_contributions` 的陈旧用例（v0.12.1 起套件一直失败）；新增两条回归测试锁定 `.part` 路径原样写入行为。
+
 ## 0.11.0 (2026-05-24)
 
 - **GPT SoVITS Cloud provider**: 新增 `gpt-sovits-api`，面向自部署 GPT-SoVITS `api_v2.py` 服务，支持 `/tts`、`/set_gpt_weights` 和 `/set_sovits_weights`。
